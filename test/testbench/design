@@ -1,0 +1,139 @@
+https://edaplayground.com/x/vgD5
+
+
+//testbench.cv
+module tb_fraud_detection_system;
+
+    // Inputs
+    reg clk;
+    reg reset;
+    reg [31:0] transaction_amount;
+    reg [31:0] transaction_time;
+    reg [31:0] transaction_location;
+    reg [31:0] user_location;
+
+    // Outputs
+    wire fraud_flag;
+
+    // Instantiate the fraud detection system
+    fraud_detection_system uut (
+        .clk(clk),
+        .reset(reset),
+        .transaction_amount(transaction_amount),
+        .transaction_time(transaction_time),
+        .transaction_location(transaction_location),
+        .user_location(user_location),
+        .fraud_flag(fraud_flag)
+    );
+       //This file contains the testbench to verify the functionality of the fraud detection system.
+
+
+    // Clock generation
+    always #5 clk = ~clk;
+
+    // Test cases
+    initial begin
+        // Initialize inputs
+        clk = 0;
+        reset = 1;
+        transaction_amount = 32'd0;
+        transaction_time = 32'd0;
+        transaction_location = 32'd0;
+        user_location = 32'd50;
+
+        // Reset the system
+        #10 reset = 0;
+
+        // Test case 1: Normal transaction
+        #10 transaction_amount = 32'd5000;
+        transaction_time = 32'd100;
+        transaction_location = 32'd60;
+        #10 $display("Test Case 1: Fraud Flag = %b", fraud_flag);
+
+        // Test case 2: Unusual transaction amount
+        #10 transaction_amount = 32'd15000;
+        transaction_time = 32'd200;
+        transaction_location = 32'd70;
+        #10 $display("Test Case 2: Fraud Flag = %b", fraud_flag);
+
+        // Test case 3: High-frequency transaction
+        #10 transaction_amount = 32'd5000;
+        transaction_time = 32'd210;
+        transaction_location = 32'd80;
+        #10 $display("Test Case 3: Fraud Flag = %b", fraud_flag);
+
+        // Test case 4: Geolocation mismatch
+        #10 transaction_amount = 32'd5000;
+        transaction_time = 32'd300;
+        transaction_location = 32'd200;
+        #10 $display("Test Case 4: Fraud Flag = %b", fraud_flag);
+
+        // End simulation
+        #10 $finish;
+    end
+
+endmodule
+
+
+
+
+
+design.sv
+
+
+module fraud_detection_system (
+    input clk,                     // Clock signal
+    input reset,                   // Reset signal
+    input [31:0] transaction_amount, // Transaction amount (32-bit)
+    input [31:0] transaction_time,   // Transaction time (32-bit timestamp)
+    input [31:0] transaction_location, // Transaction location (32-bit encoded)
+    input [31:0] user_location,       // User's usual location (32-bit encoded)
+    output reg fraud_flag            // Fraud flag (1 if fraud detected, 0 otherwise)
+);
+
+    // Parameters for fraud detection rules
+    parameter AMOUNT_THRESHOLD = 32'd10000; // Threshold for unusual transaction amount
+    parameter TIME_THRESHOLD = 32'd60;       // Threshold for high-frequency transactions (in seconds)
+    parameter LOCATION_THRESHOLD = 32'd100;  // Threshold for geolocation mismatch (in arbitrary units)
+//This file contains the Verilog module for the fraud detection system.
+
+
+    // Internal registers to store previous transaction data
+    reg [31:0] prev_amount;
+    reg [31:0] prev_time;
+    reg [31:0] prev_location;
+
+    // Initialize previous transaction data
+    always @(posedge clk or posedge reset) begin
+        if (reset) begin
+            prev_amount <= 32'd0;
+            prev_time <= 32'd0;
+            prev_location <= 32'd0;
+            fraud_flag <= 1'b0;
+        end else begin
+            // Check for unusual transaction amount
+            if (transaction_amount > AMOUNT_THRESHOLD) begin
+                fraud_flag <= 1'b1;
+            end
+            // Check for high-frequency transactions
+            else if ((transaction_time - prev_time) < TIME_THRESHOLD) begin
+                fraud_flag <= 1'b1;
+            end
+            // Check for geolocation mismatch
+            else if ((transaction_location - user_location) > LOCATION_THRESHOLD) begin
+                fraud_flag <= 1'b1;
+            end else begin
+                fraud_flag <= 1'b0;
+            end
+
+            // Update previous transaction data
+            prev_amount <= transaction_amount;
+            prev_time <= transaction_time;
+            prev_location <= transaction_location;
+        end
+    end
+
+endmodule
+
+
+
